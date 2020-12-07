@@ -2,6 +2,7 @@ package cn.edu.tsinghua.entity;
 
 import lombok.*;
 
+import java.lang.reflect.Field;
 import java.util.Objects;
 
 /**
@@ -46,8 +47,6 @@ public class Product {
 
     public static Product fromString(String source) {
         String[] fields = source.split(",");
-        assert fields.length == 5;
-        return new Product(Long.valueOf(fields[0]), fields[1], Double.valueOf(fields[2]), Integer.valueOf(fields[3]), fields[4]);
+        return new Product(Long.parseLong(fields[0]), fields[1], Double.parseDouble(fields[2]), Integer.parseInt(fields[3]), fields[4]);
     }
-
 }

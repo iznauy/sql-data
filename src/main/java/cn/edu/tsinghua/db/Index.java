@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.db;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.lang.reflect.Field;
@@ -11,6 +12,7 @@ import java.lang.reflect.Field;
  * @author iznauy
  */
 @Data
+@AllArgsConstructor
 public class Index {
 
     private Field[] fields;

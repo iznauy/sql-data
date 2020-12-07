@@ -12,7 +12,7 @@ import java.util.Random;
  */
 public class UserFactory {
 
-    private static Random random = new Random();
+    private static final Random random = new Random();
 
     public static User user() {
         return new User(userId(), username(), password(), address());

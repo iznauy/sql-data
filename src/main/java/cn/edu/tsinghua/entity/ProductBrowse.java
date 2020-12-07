@@ -47,8 +47,7 @@ public class ProductBrowse {
 
     public static ProductBrowse fromString(String source) {
         String[] fields = source.split(",");
-        assert fields.length == 4;
-        return new ProductBrowse(Long.valueOf(fields[0]), Long.valueOf(fields[1]), Long.valueOf(fields[2]), fields[3]);
+        return new ProductBrowse(Long.parseLong(fields[0]), Long.parseLong(fields[1]), Long.parseLong(fields[2]), fields[3]);
     }
 
 }

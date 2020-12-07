@@ -10,6 +10,17 @@ import java.io.File;
  */
 public class Conf {
 
+    /**
+     * 和数据库有关的配置
+     */
+    public static final int ChunkSize = 100;
+
+
+
+
+    /**
+     * 下面是和数据集有关的配置
+     */
     public static final String TablePath = "D:\\Projects\\Java\\sql-data";
 
     public static final String ProductTableName = "product";

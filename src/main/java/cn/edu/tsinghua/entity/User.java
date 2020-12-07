@@ -44,8 +44,7 @@ public class User {
 
     public static User fromString(String source) {
         String[] fields = source.split(",");
-        assert fields.length == 4;
-        return new User(Long.valueOf(fields[0]), fields[1], fields[2], fields[3]);
+        return new User(Long.parseLong(fields[0]), fields[1], fields[2], fields[3]);
     }
 
 }

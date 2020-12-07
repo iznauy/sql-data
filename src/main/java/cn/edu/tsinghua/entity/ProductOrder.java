@@ -48,8 +48,7 @@ public class ProductOrder {
 
     public static ProductOrder fromString(String source) {
         String[] fields = source.split(",");
-        assert fields.length == 5;
-        return new ProductOrder(Long.valueOf(fields[0]), Long.valueOf(fields[1]), Integer.valueOf(fields[2]), Double.valueOf(fields[3]), Long.valueOf(fields[4]));
+        return new ProductOrder(Long.parseLong(fields[0]), Long.parseLong(fields[1]), Integer.parseInt(fields[2]), Double.parseDouble(fields[3]), Long.parseLong(fields[4]));
     }
 
 }
