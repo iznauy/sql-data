@@ -42,6 +42,10 @@ public class User {
         return String.format("%d,%s,%s,%s", userId, username, password, address);
     }
 
-
+    public static User fromString(String source) {
+        String[] fields = source.split(",");
+        assert fields.length == 4;
+        return new User(Long.valueOf(fields[0]), fields[1], fields[2], fields[3]);
+    }
 
 }

@@ -43,4 +43,11 @@ public class Product {
     public String toString() {
         return String.format("%d,%s,%f,%d,%s", productId, productName, productPrice, productStock, productDescription);
     }
+
+    public static Product fromString(String source) {
+        String[] fields = source.split(",");
+        assert fields.length == 5;
+        return new Product(Long.valueOf(fields[0]), fields[1], Double.valueOf(fields[2]), Integer.valueOf(fields[3]), fields[4]);
+    }
+
 }

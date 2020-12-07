@@ -45,4 +45,11 @@ public class ProductOrder {
     public String toString() {
         return String.format("%d,%d,%d,%f,%d", userId, productId, count, amount, time);
     }
+
+    public static ProductOrder fromString(String source) {
+        String[] fields = source.split(",");
+        assert fields.length == 5;
+        return new ProductOrder(Long.valueOf(fields[0]), Long.valueOf(fields[1]), Integer.valueOf(fields[2]), Double.valueOf(fields[3]), Long.valueOf(fields[4]));
+    }
+
 }
