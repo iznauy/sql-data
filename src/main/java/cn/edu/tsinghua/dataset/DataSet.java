@@ -195,7 +195,44 @@ public class DataSet {
         return span;
     }
 
-    public long joinProductOrderAndProductBrowse() throws Exception {
+    public long queryUserById() {
+        long beginTime = System.nanoTime();
+        long userId = 214748367;
+        for (Chunk<User> userChunk: userChunks) {
+            if (userChunk.getMin().getUserId() > userId || userChunk.getMax().getUserId() < userId) {
+                continue;
+            }
+            for (User user: userChunk.getData()) {
+                if (user.getUserId() == userId) {
+                    System.out.println(user.toString());
+                }
+            }
+        }
+        long span = System.nanoTime() - beginTime;
+        System.out.println(span + " " + 0);
+        return span;
+    }
+
+    public long queryProductOrder() {
+        long beginTime = System.nanoTime();
+        List<ProductOrder> results = new ArrayList<>();
+        long targetId = productOrderChunks[22].getData()[0].getProductId();
+        for (Chunk<ProductOrder> productOrderChunk: productOrderChunks) {
+            if (productOrderChunk.getMin().getProductId() > targetId || productOrderChunk.getMax().getProductId() < targetId) {
+                continue;
+            }
+            for (ProductOrder productOrder: productOrderChunk.getData()) {
+                if (productOrder.getProductId() == targetId) {
+                    results.add(productOrder);
+                }
+            }
+        }
+        long span = System.nanoTime() - beginTime;
+        System.out.println(span + " " + results.size());
+        return span;
+    }
+
+    public long queryProductOrderAndProductBrowse() throws Exception {
         long beginTime = System.nanoTime();
         HashBucket<ProductOrder>[] productOrderBuckets = this.productOrderBuckets;
         Index productOrderIndex = indexMap.getOrDefault(ProductOrder.class, null);
@@ -277,6 +314,11 @@ public class DataSet {
     public static void main(String[] args) throws Exception {
         Map<Class<?>, Index> indexMap = new HashMap<>();
 
+        Index userIndex = new Index(new Field[]{
+                User.class.getDeclaredField("userId")
+        }, IndexType.ZOrder);
+        indexMap.put(User.class, userIndex);
+
         Index productOrderIndex = new Index(new Field[]{
                 ProductOrder.class.getDeclaredField("productId"),
                 ProductOrder.class.getDeclaredField("userId"),
@@ -298,9 +340,11 @@ public class DataSet {
         indexMap.put(Product.class, productIndex);
 
         DataSet dataSet = new DataSet(indexMap);
+        dataSet.queryUserById();
         dataSet.queryProductByStockAndPrice();
         dataSet.queryProductByStock();
-        dataSet.joinProductOrderAndProductBrowse();
+        dataSet.queryProductOrder();
+        dataSet.queryProductOrderAndProductBrowse();
     }
 
 }
