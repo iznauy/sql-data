@@ -15,8 +15,9 @@ public class Conf {
      */
     public static final int ChunkSize = 100;
 
+    public static final int BucketCount = 64;
 
-
+    public static final int BucketPrefix = 6;
 
     /**
      * 下面是和数据集有关的配置
@@ -33,12 +34,12 @@ public class Conf {
 
     public static final String FileTemplate = "%s" + File.separator + "%s.txt";
 
-    public static final int UserCount = 100000;
+    public static final int UserCount = 128000;
 
-    public static final int ProductCount = 50000;
+    public static final int ProductCount = 64000;
 
-    public static final int ProductOrderCount = 500000;
+    public static final int ProductOrderCount = 640000;
 
-    public static final int ProductBrowseCount = 2000000;
+    public static final int ProductBrowseCount = 2560000;
 
 }
