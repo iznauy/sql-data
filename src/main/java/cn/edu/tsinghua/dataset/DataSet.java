@@ -12,7 +12,6 @@ import cn.edu.tsinghua.factory.ProductOrderFactory;
 import cn.edu.tsinghua.factory.UserFactory;
 import cn.edu.tsinghua.tool.ArrayGenerator;
 
-import java.lang.reflect.Array;
 import java.lang.reflect.Field;
 import java.util.*;
 
@@ -35,6 +34,8 @@ public class DataSet {
     private Chunk<ProductOrder>[] productOrderChunks;
 
     private HashBucket<ProductOrder>[] productOrderBuckets;
+
+    private int productOrderCount = 0;
 
     public DataSet(Map<Class<?>, Index> indexMap) throws Exception {
         this.indexMap = indexMap;
@@ -69,7 +70,8 @@ public class DataSet {
                 productOrderList.add(ProductOrderFactory.productOrder(productBrowse));
             }
         }
-        ProductOrder[] productOrders = new ProductOrder[productOrderList.size()];
+        productOrderCount = productOrderList.size();
+        ProductOrder[] productOrders = new ProductOrder[productOrderCount];
         for (int i = 0; i < productOrders.length; i++) {
             productOrders[i] = productOrderList.get(i);
         }
@@ -77,7 +79,7 @@ public class DataSet {
         Pair<Chunk<ProductBrowse>[], HashBucket<ProductBrowse>[]> productBrowsePair = constructTable(productBrowses, productBrowseIndex, ProductBrowse.class);
         productBrowseChunks = productBrowsePair.getK();
         productBrowseBuckets = productBrowsePair.getV();
-        Index productOrderIndex = indexMap.getOrDefault(ProductBrowse.class, null);
+        Index productOrderIndex = indexMap.getOrDefault(ProductOrder.class, null);
         Pair<Chunk<ProductOrder>[], HashBucket<ProductOrder>[]> productOrderPair = constructTable(productOrders, productOrderIndex, ProductOrder.class);
         productOrderChunks = productOrderPair.getK();
         productOrderBuckets = productOrderPair.getV();
@@ -120,8 +122,9 @@ public class DataSet {
             for (int j = 0; j < bucketList.size(); j++) {
                 bucketRecords[j] = bucketList.get(j);
             }
+            Arrays.sort(bucketRecords, new FieldsComparator(fields));
             Chunk<T>[] chunks = constructChunks(bucketRecords, clazz);
-            hashBuckets[i] = new HashBucket<>(chunks);
+            hashBuckets[i] = new HashBucket<>(chunks, clazz);
         }
         return hashBuckets;
     }
@@ -192,27 +195,112 @@ public class DataSet {
         return span;
     }
 
-    public long joinProductOrderAndProductBrowse() {
+    public long joinProductOrderAndProductBrowse() throws Exception {
+        long beginTime = System.nanoTime();
         HashBucket<ProductOrder>[] productOrderBuckets = this.productOrderBuckets;
         Index productOrderIndex = indexMap.getOrDefault(ProductOrder.class, null);
-        if (productOrderIndex == null || )
-        return 0;
+        Field[] productOrderJoinFields = new Field[]{
+                ProductOrder.class.getDeclaredField("productId"),
+                ProductOrder.class.getDeclaredField("userId"),
+                ProductOrder.class.getDeclaredField("time")
+        };
+        if (productOrderIndex == null || cannotUseIndex(productOrderIndex, productOrderJoinFields)) {
+            ProductOrder[] productOrders = new ProductOrder[productOrderCount];
+            int index = 0;
+            for (Chunk<ProductOrder> productOrderChunk : productOrderChunks) {
+                ProductOrder[] productOrderChunkData = productOrderChunk.getData();
+                System.arraycopy(productOrderChunkData, 0, productOrders, index, productOrderChunkData.length);
+                index += productOrderChunkData.length;
+            }
+            productOrderBuckets = constructHashBuckets(productOrders, productOrderJoinFields, ProductOrder.class);
+        }
+
+        HashBucket<ProductBrowse>[] productBrowseBuckets = this.productBrowseBuckets;
+        Index productBrowseIndex = indexMap.getOrDefault(ProductBrowse.class, null);
+        Field[] productBrowseJoinFields = new Field[] {
+                ProductBrowse.class.getDeclaredField("productId"),
+                ProductBrowse.class.getDeclaredField("userId"),
+                ProductBrowse.class.getDeclaredField("time")
+        };
+        if (productBrowseIndex == null || cannotUseIndex(productBrowseIndex, productBrowseJoinFields)) {
+            ProductBrowse[] productBrowses = new ProductBrowse[Conf.ProductBrowseCount];
+            int index = 0;
+            for (Chunk<ProductBrowse> productBrowseChunk: productBrowseChunks) {
+                ProductBrowse[] productBrowseChunkData = productBrowseChunk.getData();
+                System.arraycopy(productBrowseChunkData, 0, productBrowses, index, productBrowseChunkData.length);
+                index += productBrowseChunkData.length;
+            }
+            productBrowseBuckets = constructHashBuckets(productBrowses, productBrowseJoinFields, ProductBrowse.class);
+        }
+        int resultSize = 0;
+        for (int i = 0; i < Conf.BucketCount; i++) {
+            ProductOrder[] productOrders = productOrderBuckets[i].records();
+            ProductBrowse[] productBrowses = productBrowseBuckets[i].records();
+            int index1 = 0, index2 = 0;
+            JoinComparator comparator = new JoinComparator(productOrderJoinFields, productBrowseJoinFields);
+            List<Pair<ProductOrder, ProductBrowse>> resultList = new ArrayList<>();
+            while (index1 < productOrders.length && index2 < productBrowses.length) {
+                ProductOrder productOrder = productOrders[index1];
+                ProductBrowse productBrowse = productBrowses[index2];
+                int compareResult = comparator.compare(productOrder, productBrowse);
+                if (compareResult == 0) {
+                    resultList.add(new Pair<>(productOrder, productBrowse));
+                    index1 += 1;
+                    index2 += 1;
+                } else if (compareResult < 0) {
+                    index1 += 1;
+                } else {
+                    index2 += 1;
+                }
+            }
+            resultSize += resultList.size();
+        }
+        long span = System.nanoTime() - beginTime;
+        System.out.println(span + " " + resultSize);
+        return resultSize;
     }
 
-    private boolean
-
-    private <K, V> void join() {
-
+    private boolean cannotUseIndex(Index index, Field[] fields) {
+        Set<String> indexFieldNameSet = new HashSet<>();
+        for (Field field: index.getFields()) {
+            indexFieldNameSet.add(field.getName());
+        }
+        for (Field field: fields) {
+            if (indexFieldNameSet.contains(field.getName())) {
+                continue;
+            }
+            return true;
+        }
+        return false;
     }
 
     public static void main(String[] args) throws Exception {
-        Index index = new Index(new Field[]{Product.class.getDeclaredField("productStock"), Product.class.getDeclaredField("productPrice")}, IndexType.ZOrder);
         Map<Class<?>, Index> indexMap = new HashMap<>();
-        indexMap.put(Product.class, index);
+
+        Index productOrderIndex = new Index(new Field[]{
+                ProductOrder.class.getDeclaredField("productId"),
+                ProductOrder.class.getDeclaredField("userId"),
+                ProductOrder.class.getDeclaredField("time")
+        }, IndexType.HashCluster);
+        indexMap.put(ProductOrder.class, productOrderIndex);
+
+        Index productBrowseIndex = new Index(new Field[]{
+                ProductBrowse.class.getDeclaredField("productId"),
+                ProductBrowse.class.getDeclaredField("userId"),
+                ProductBrowse.class.getDeclaredField("time"),
+        }, IndexType.HashCluster);
+        indexMap.put(ProductBrowse.class, productBrowseIndex);
+
+        Index productIndex = new Index(new Field[]{
+                Product.class.getDeclaredField("productStock"),
+                Product.class.getDeclaredField("productPrice")
+        }, IndexType.ZOrder);
+        indexMap.put(Product.class, productIndex);
+
         DataSet dataSet = new DataSet(indexMap);
-//        DataSet dataSet = new DataSet(new HashMap<>());
-//        dataSet.queryProductByStockAndPrice();
+        dataSet.queryProductByStockAndPrice();
         dataSet.queryProductByStock();
+        dataSet.joinProductOrderAndProductBrowse();
     }
 
 }
